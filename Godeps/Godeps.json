@@ -2,6 +2,9 @@
 	"ImportPath": "k8s.io/node-problem-detector",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v74",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "bitbucket.org/ww/goautoneg",
@@ -112,6 +115,10 @@
 			"Rev": "7c47e2558a0bbbaba9ecab06bc6681e73028a28a"
 		},
 		{
+			"ImportPath": "github.com/euank/go-kmsg-parser/kmsgparser",
+			"Rev": "707dc882f647d32cabc54d8483b8b239b2242b50"
+		},
+		{
 			"ImportPath": "github.com/ghodss/yaml",
 			"Rev": "73d445a93680fa1a78ae23a5839bad48f32ba1ee"
 		},
@@ -187,6 +194,15 @@
 			"Rev": "3fd3c1944c59d9742e1cd333672181cd1a6f9fa0"
 		},
 		{
+			"ImportPath": "github.com/pivotal-golang/clock/fakeclock",
+			"Rev": "3fd3c1944c59d9742e1cd333672181cd1a6f9fa0"
+		},
+		{
+			"ImportPath": "github.com/pmezard/go-difflib/difflib",
+			"Comment": "v1.0.0",
+			"Rev": "792786c7400a136282c1664665ae0a8db921c6c2"
+		},
+		{
 			"ImportPath": "github.com/prometheus/client_golang/prometheus",
 			"Comment": "0.7.0-39-g3b78d7a",
 			"Rev": "3b78d7a77f51ccbc364d4bc170920153022cfd08"
@@ -211,6 +227,11 @@
 		{
 			"ImportPath": "github.com/spf13/pflag",
 			"Rev": "08b1a584251b5b62f458943640fc8ebd4d50aaa5"
+		},
+		{
+			"ImportPath": "github.com/stretchr/testify/assert",
+			"Comment": "v1.1.4-4-g976c720",
+			"Rev": "976c720a22c8eb4eb6a0b4348ad85ad12491a506"
 		},
 		{
 			"ImportPath": "github.com/ugorji/go/codec",
