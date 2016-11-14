@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ZONE=us-central1-b
-KERNLOG=/var/log/kern.log
+KERNLOG=/dev/kmsg
 
 usage () {
   echo "Usage : `basename $0` COMMAND [arg...]
@@ -30,9 +30,7 @@ rebootAll() {
 }
 
 reboot() {
-  LATEST=`gcloud compute ssh -n root@$1 --zone=$ZONE "tail -1 $KERNLOG"`
-  PREFIX=`echo $LATEST | cut -d "]" -f 1 -`"]"
-  runCmd "gcloud compute ssh -n root@$1 --zone=$ZONE \"echo '$PREFIX Initializing cgroup subsys cpuset' >> $KERNLOG\""
+  runCmd "gcloud compute ssh -n root@$1 --zone=$ZONE \"echo 'Initializing cgroup subsys cpuset' >> $KERNLOG\""
 }
 
 case $1 in
@@ -52,14 +50,11 @@ case $1 in
       exit 1
     fi
     NODE=$3
-    LATEST=`gcloud compute ssh root@$NODE --zone=$ZONE "tail -1 $KERNLOG"`
-    PREFIX=`echo $LATEST | cut -d "]" -f 1 -`"]"
-    PREFIX=`printf "%q" "$PREFIX"`
     COMMAND=
     while read error
     do
       ERROR=`printf "%q" "$error"`
-      COMMAND=$COMMAND"echo $PREFIX $ERROR >> $KERNLOG; "
+      COMMAND=$COMMAND"echo $ERROR >> $KERNLOG; "
     done < $2
     runCmd "gcloud compute ssh root@$NODE --zone=$ZONE '$COMMAND'"
     ;;

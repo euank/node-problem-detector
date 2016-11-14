@@ -23,17 +23,23 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         volumeMounts:
-        - name: log
-          mountPath: /log
-          readOnly: true
         - name: config
           mountPath: /config
           readOnly: true
+        - name: log
+          mountPath: /log
+          readOnly: true
+        - name: kmsg
+          mountPath: /dev/kmsg
+          readOnly: true
       volumes:
-      - name: log
-        # Config `log` to your system log directory
-        hostPath:
-          path: /var/log/
       - name: config
         configMap:
           name: node-problem-detector-config
+      - name: log
+        # No longer used, but retained for backwards compatibility with old versions
+        hostPath:
+          path: /var/log
+      - name: kmsg
+        hostPath:
+          path: /dev/kmsg

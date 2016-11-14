@@ -1,5 +1,4 @@
 {
-	"logPath": "/log/kern.log",
 	"lookback": "10m",
 	"startPattern": "Initializing cgroup subsys cpuset",
 	"bufferSize": 10,

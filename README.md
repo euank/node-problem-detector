@@ -78,14 +78,19 @@ spec:
             fieldRef:
               fieldPath: spec.nodeName
         volumeMounts:
+        - name: kmsg
+          mountPath: /dev/kmsg
+          readOnly: true
         - name: log
           mountPath: /log
           readOnly: true
       volumes:
-      - name: log
-        # Config `log` to your system log directory
+      - name: kmsg
         hostPath:
-          path: /var/log/
+          path: /dev/kmsg
+      - name: log
+        hostPath:
+          path: /var/log
 ```
 * Edit node-problem-detector.yaml to fit your environment: Set `log` volume to your system log diretory. (Used by KernelMonitor)
 * Create the DaemonSet with `kubectl create -f node-problem-detector.yaml`
