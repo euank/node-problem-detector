@@ -9,12 +9,13 @@ The rule list is extensible.
 
 ## Limitations
 
-* Kernel Monitor only supports file based kernel log now. It doesn't support log tools
-like journald. There is an [open issue](https://github.com/kubernetes/node-problem-detector/issues/14)
-to add journald support.
-
-* Kernel Monitor has assumption on kernel log format, now it only works on Ubuntu and
-Debian. However, it is easy to extend it to [support other log format](#support-other-log-format).
+* Kernel Monitor only reads logs from `/dev/kmsg`. This device is only
+  available on Linux with a kernel of at least version 3.5.
+  For any non-Linux OS or poorly configured kernels, this may not work.
+* Kernel Monitor may have inaccurate timestamps. This is due to the design of
+  the Kernel Ring buffer, which is susceptible to suspend/hibernate throwing
+  off message timestamps. Use of suspend/hibernate alongside Kernel Monitor is
+  not supported.
 
 ## Add New NodeConditions
 
@@ -42,15 +43,3 @@ with new rule definition:
   "message": "regexp matching the issue in the kernel log"
 }
 ```
-
-## Change Log Path
-
-Kernel log in different OS distros may locate in different path. The `log`
-field in `config/kernel-monitor.json` is the log path inside the container.
-You can always configure it to match your OS distro.
-
-## Support Other Log Format
-
-Kernel monitor uses [`Translator`](https://github.com/kubernetes/node-problem-detector/blob/master/pkg/kernelmonitor/translator/translator.go)
-plugin to translate kernel log the internal data structure. It is easy to
-implement a new translator for a new log format.

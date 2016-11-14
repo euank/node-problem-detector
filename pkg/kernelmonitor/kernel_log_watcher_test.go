@@ -17,32 +17,49 @@ limitations under the License.
 package kernelmonitor
 
 import (
-	"io/ioutil"
-	//"os"
-	"reflect"
+	"io"
+
+	"github.com/euank/go-kmsg-parser/kmsgparser"
+	"github.com/pivotal-golang/clock/fakeclock"
+	"github.com/stretchr/testify/assert"
+
 	"testing"
 	"time"
 
 	"k8s.io/node-problem-detector/pkg/kernelmonitor/types"
-
-	"github.com/pivotal-golang/clock/fakeclock"
 )
 
+type mockKmsgParser struct {
+	kmsgs []kmsgparser.Message
+}
+
+func (m *mockKmsgParser) SetLogger(kmsgparser.Logger) {}
+func (m *mockKmsgParser) Close() error                { return nil }
+func (m *mockKmsgParser) Parse() <-chan kmsgparser.Message {
+	c := make(chan kmsgparser.Message)
+	go func() {
+		for _, msg := range m.kmsgs {
+			c <- msg
+		}
+	}()
+	return c
+}
+
 func TestWatch(t *testing.T) {
-	// now is a fake time
 	now := time.Date(time.Now().Year(), time.January, 2, 3, 4, 5, 0, time.Local)
 	fakeClock := fakeclock.NewFakeClock(now)
 	testCases := []struct {
-		log      string
+		log      *mockKmsgParser
 		logs     []types.KernelLog
 		lookback string
 	}{
 		{
 			// The start point is at the head of the log file.
-			log: `Jan  2 03:04:05 kernel: [0.000000] 1
-			Jan  2 03:04:06 kernel: [1.000000] 2
-			Jan  2 03:04:07 kernel: [2.000000] 3
-			`,
+			log: &mockKmsgParser{kmsgs: []kmsgparser.Message{
+				{Message: "1", Timestamp: now.Add(0 * time.Second)},
+				{Message: "2", Timestamp: now.Add(1 * time.Second)},
+				{Message: "3", Timestamp: now.Add(2 * time.Second)},
+			}},
 			logs: []types.KernelLog{
 				{
 					Timestamp: now,
@@ -60,10 +77,11 @@ func TestWatch(t *testing.T) {
 		},
 		{
 			// The start point is in the middle of the log file.
-			log: `Jan  2 03:04:04 kernel: [0.000000] 1
-			Jan  2 03:04:05 kernel: [1.000000] 2
-			Jan  2 03:04:06 kernel: [2.000000] 3
-			`,
+			log: &mockKmsgParser{kmsgs: []kmsgparser.Message{
+				{Message: "1", Timestamp: now.Add(-1 * time.Second)},
+				{Message: "2", Timestamp: now.Add(0 * time.Second)},
+				{Message: "3", Timestamp: now.Add(1 * time.Second)},
+			}},
 			logs: []types.KernelLog{
 				{
 					Timestamp: now,
@@ -77,10 +95,11 @@ func TestWatch(t *testing.T) {
 		},
 		{
 			// The start point is at the end of the log file, but we look back.
-			log: `Jan  2 03:04:03 kernel: [0.000000] 1
-			Jan  2 03:04:04 kernel: [1.000000] 2
-			Jan  2 03:04:05 kernel: [2.000000] 3
-			`,
+			log: &mockKmsgParser{kmsgs: []kmsgparser.Message{
+				{Message: "1", Timestamp: now.Add(-2 * time.Second)},
+				{Message: "2", Timestamp: now.Add(-1 * time.Second)},
+				{Message: "3", Timestamp: now.Add(0 * time.Second)},
+			}},
 			lookback: "1s",
 			logs: []types.KernelLog{
 				{
@@ -94,23 +113,10 @@ func TestWatch(t *testing.T) {
 			},
 		},
 	}
-	for c, test := range testCases {
-		f, err := ioutil.TempFile("", "kernel_log_watcher_test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer func() {
-			f.Close()
-			//os.Remove(f.Name())
-		}()
-		_, err = f.Write([]byte(test.log))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		w := NewKernelLogWatcher(WatcherConfig{KernelLogPath: f.Name(), Lookback: test.lookback})
-		// Set the fake clock.
+	for _, test := range testCases {
+		w := NewKernelLogWatcher(WatcherConfig{Lookback: test.lookback})
 		w.(*kernelLogWatcher).clock = fakeClock
+		w.(*kernelLogWatcher).kmsgParser = test.log
 		logCh, err := w.Watch()
 		if err != nil {
 			t.Fatal(err)
@@ -118,9 +124,7 @@ func TestWatch(t *testing.T) {
 		defer w.Stop()
 		for _, expected := range test.logs {
 			got := <-logCh
-			if !reflect.DeepEqual(&expected, got) {
-				t.Errorf("case %d: expect %+v, got %+v", c+1, expected, *got)
-			}
+			assert.Equal(t, &expected, got)
 		}
 		// The log channel should have already been drained
 		// There could stil be future messages sent into the channel, but the chance is really slim.
@@ -131,4 +135,22 @@ func TestWatch(t *testing.T) {
 		case <-timeout:
 		}
 	}
+}
+
+type fakeKmsgReader struct {
+	logLines []string
+}
+
+func (r *fakeKmsgReader) Read(data []byte) (int, error) {
+	if len(r.logLines) == 0 {
+		return 0, io.EOF
+	}
+	l := r.logLines[0]
+	r.logLines = r.logLines[1:]
+	copy(data, []byte(l))
+	return len(l), nil
+}
+
+func (r *fakeKmsgReader) Close() error {
+	return nil
 }
